@@ -11,8 +11,8 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
-
 inquirer
+    // Prompt for selection of action
     .prompt([
         {
             type: 'list',
@@ -137,14 +137,45 @@ inquirer
 
             case 'Update an Employee Role':
                 // Handle the update an employee role action
+                pool.execute('SELECT id, first_name, last_name FROM employee')
+                    .then(([rows]) => {
+                        console.log(rows);
+                    })
+                    .then(async () => {
+                        let answers = await inquirer.prompt([
+                            {
+                                type: 'input',
+                                message: 'What is the ID of the employee to change?',
+                                name: 'empID'
+                            },
+                            {
+                                type: 'input',
+                                message: 'What is the new role ID?',
+                                name: 'newRole'
+                            }
+                        ]);
+
+                        let empID = parseInt(answers.empID, 10);
+                        let newRole = parseInt(answers.newRole, 10);
+
+                        let employeeData = await pool.execute('SELECT id, first_name, last_name, role_id FROM employee WHERE id = ?;', [empID]);
+
+                        await pool.execute('UPDATE employee SET role_id = ? WHERE id = ?;', [newRole, empID]);
+                        console.log(employeeData[0]);
+                    })
+                    .then(() => {
+                        console.log('Role updated!');
+                        pool.end();
+                    })
+                    .catch((error) => {
+                        console.error('Error occurred while updating role', error);
+                    });
                 break;
 
             default:
                 console.log('Invalid action selected.');
                 break;
         }
-
-
     })
     .catch((error) => {
         console.error('An error occurred:', error);
